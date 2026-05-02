@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casino Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-white font-sans min-h-screen flex flex-col items-center justify-center">
+    
+    <div id="login" class="bg-slate-900 p-8 rounded-2xl shadow-xl text-center border border-slate-800">
+        <h1 class="text-3xl font-bold mb-6 text-yellow-500">🎰 CASINO SOLO 🎰</h1>
+        <input id="user" type="text" placeholder="Tu Usuario" class="bg-slate-800 border border-slate-700 p-3 rounded-lg w-full mb-4">
+        <button onclick="entrar()" class="bg-yellow-600 hover:bg-yellow-700 font-bold py-3 px-6 rounded-lg w-full">ENTRAR</button>
+    </div>
+
+    <div id="juego" class="hidden w-full max-w-md bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800">
+        <div class="flex justify-between items-center mb-6">
+            <h2 id="display-user" class="text-xl font-bold"></h2>
+            <p class="text-2xl text-green-400 font-mono font-bold">$<span id="balance">0</span></p>
+        </div>
+        
+        <div class="bg-slate-800 p-8 rounded-xl text-center mb-6">
+            <p id="msg" class="text-lg mb-2">Presiona para jugar</p>
+            <div id="num-resultado" class="text-5xl font-bold text-yellow-500">-</div>
+        </div>
+
+        <button onclick="apostar(10)" class="w-full bg-indigo-600 hover:bg-indigo-700 py-4 rounded-xl font-bold text-xl shadow-lg transition-all active:scale-95">APOSTAR $10</button>
+        
+        <hr class="my-8 border-slate-700">
+        
+        <details class="text-slate-500 text-sm">
+            <summary class="cursor-pointer">Panel de Carga (Admin)</summary>
+            <div class="mt-4 space-y-2">
+                <input id="adm-pass" type="password" placeholder="Clave Admin" class="w-full bg-slate-800 p-2 rounded">
+                <input id="adm-user" type="text" placeholder="Usuario a cargar" class="w-full bg-slate-800 p-2 rounded">
+                <input id="adm-monto" type="number" placeholder="Monto" class="w-full bg-slate-800 p-2 rounded">
+                <button onclick="adminCargar()" class="w-full bg-green-700 text-white p-2 rounded">CARGAR SALDO</button>
+            </div>
+        </details>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let miUsuario = "";
+
+        function entrar() {
+            miUsuario = document.getElementById('user').value;
+            if(miUsuario) socket.emit('registrar', miUsuario);
+        }
+
+        socket.on('usuario_listo', u => {
+            document.getElementById('login').classList.add('hidden');
+            document.getElementById('juego').classList.remove('hidden');
+            document.getElementById('display-user').innerText = u.username;
+            document.getElementById('balance').innerText = u.balance;
+        });
+
+        function apostar(m) {
+            socket.emit('apostar', m);
+        }
+
+        socket.on('resultado', r => {
+            document.getElementById('balance').innerText = r.nuevoSaldo;
+            document.getElementById('num-resultado').innerText = r.resultado;
+            document.getElementById('msg').innerText = r.gano ? "¡GANASTE!" : "PERDISTE";
+            document.getElementById('msg').className = r.gano ? "text-green-500 font-bold" : "text-red-500";
+        });
+
+        function adminCargar() {
+            socket.emit('admin_cargar', {
+                pass: document.getElementById('adm-pass').value,
+                user: document.getElementById('adm-user').value,
+                monto: document.getElementById('adm-monto').value
+            });
+        }
+        socket.on('actualizar_global', () => { entrar(); });
+    </script>
+</body>
+</html>
